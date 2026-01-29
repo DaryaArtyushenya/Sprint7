@@ -1,4 +1,4 @@
-package modelPojo.courierPojo;
+package model.modelPojo.courierPojo;
 
     public class CreateDeleteSuccess {
         private Boolean ok;

@@ -2,7 +2,7 @@ package Tests;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import modelPojo.orderPojo.CreateOrderSuccess;
+import model.modelPojo.orderPojo.CreateOrderSuccess;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;

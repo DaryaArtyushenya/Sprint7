@@ -1,8 +1,11 @@
 package Tests;
 
+import dataFactory.CourierFactory;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import modelPojo.courierPojo.*;
+import model.modelData.Courier;
+import model.modelPojo.courierPojo.ErrorResponse;
+import model.modelPojo.courierPojo.LoginSuccess;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,8 +24,9 @@ public class LoginCourierTests {
     @Test
     @DisplayName("Успешная авторизация")
     void loginCourierSuccessTest() {
-        courierSteps.createCourierStep("dartyushenya1", "1234", "имя");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        Response response = courierSteps.loginCourierStep(courier);
         // loginSuccess -это только боди, те часть респонса
         LoginSuccess loginSuccess = response
                 .then()
@@ -30,70 +34,66 @@ public class LoginCourierTests {
                 .extract()
                 .as(LoginSuccess.class);
         assertTrue(loginSuccess.getId() > 0);
-        courierSteps.deleteCourierStep(loginSuccess.getId());
+        courierSteps.deleteCourierStep(courier);
     }
 
     @Test
     @DisplayName("Попытка авторизации без ввода логина")
     void loginWithoutLoginFieldTest() {
-        courierSteps.createCourierStep("dartyushenya1", "1234", "имя");
-        Response response = courierSteps.loginCourierStep("", "1234");
+        Courier courier = CourierFactory.courierWithoutLogin();
+        Response response = courierSteps.loginCourierStep(courier);
         ErrorResponse errorResponse = response
                 .then()
                 .statusCode(400)
                 .extract()
                 .as(ErrorResponse.class);
         assertEquals("Недостаточно данных для входа", errorResponse.getMessage());
-        Response response1 =courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response1.as(LoginSuccess.class);
-        courierSteps.deleteCourierStep(loginSuccess.getId());
     }
 
     @Test
     @DisplayName("Попытка авторизации без ввода пароля")
     void loginWithoutPasswordTest() {
-        courierSteps.createCourierStep("dartyushenya1", "1234", "имя");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "");
+        Courier courier = CourierFactory.courierWithoutPassword();
+        Response response = courierSteps.loginCourierStep(courier);
         ErrorResponse errorResponse = response
                 .then()
                 .statusCode(400)
                 .extract()
                 .as(ErrorResponse.class);
         assertEquals("Недостаточно данных для входа", errorResponse.getMessage());
-        Response response1 = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response1.as(LoginSuccess.class);
-        courierSteps.deleteCourierStep(loginSuccess.getId());
     }
 
     @Test
     @DisplayName("Попытка авторизации, когда пара логин/пароль не совпадают")
     void loginWithIncorrectPasswordTest() {
-        courierSteps.createCourierStep("dartyushenya1", "1234", "имя");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "12345");
+        Courier courier = CourierFactory.validCourier();
+        Courier courier1 = CourierFactory.courierWithIncorrectLogin();
+        courierSteps.createCourierStep(courier);
+        Response response = courierSteps.loginCourierStep(courier1);
         ErrorResponse errorResponse = response
                 .then()
                 .statusCode(404)
                 .extract()
                 .as(ErrorResponse.class);
         assertEquals("Учетная запись не найдена", errorResponse.getMessage());
-        Response response1 =courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response1.as(LoginSuccess.class);
-        courierSteps.deleteCourierStep(loginSuccess.getId());
+        courierSteps.loginCourierStep(courier);
+        courierSteps.deleteCourierStep(courier);
     }
 
     @Test
     @DisplayName("Попытка авторизации, когда пара логин/пароль не совпадают")
     void loginWithIncorrectLoginTest() {
-        courierSteps.createCourierStep("dartyushenya1", "1234", "имя");
-        Response response = courierSteps.loginCourierStep("dartyufgbfggrbrshenya1", "1234");
+        Courier courier = CourierFactory.validCourier();
+        Courier courier1 = CourierFactory.courierWithIncorrectPassword();
+        courierSteps.createCourierStep(courier);
+        Response response = courierSteps.loginCourierStep(courier1);
         ErrorResponse errorResponse = response
                 .then()
                 .statusCode(404)
                 .extract()
                 .as(ErrorResponse.class);
         assertEquals("Учетная запись не найдена", errorResponse.getMessage());
-        Response response1 = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response1.as(LoginSuccess.class);
-        courierSteps.deleteCourierStep(loginSuccess.getId());
+        Response response1 = courierSteps.loginCourierStep(courier);
+        courierSteps.deleteCourierStep(courier);
     }
 }

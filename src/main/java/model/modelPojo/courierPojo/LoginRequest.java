@@ -1,4 +1,4 @@
-package modelPojo.courierPojo;
+package model.modelPojo.courierPojo;
 
 public class LoginRequest {
     private String login;

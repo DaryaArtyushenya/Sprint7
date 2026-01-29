@@ -1,4 +1,4 @@
-package modelPojo.orderPojo.orderListPojo;
+package model.modelPojo.orderPojo.orderListPojo;
 
 public class Station {
     private String name;

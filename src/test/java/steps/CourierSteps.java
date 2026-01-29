@@ -3,29 +3,36 @@ package steps;
 import clients.CourierClient;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
-import modelPojo.courierPojo.*;
+import model.modelData.Courier;
+import model.modelPojo.courierPojo.CreateRequest;
+import model.modelPojo.courierPojo.DeleteRequest;
+import model.modelPojo.courierPojo.LoginRequest;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CourierSteps extends CourierClient {
     // создали объект courierClient с типом CourierClient, чтобы мочь вызывать методы этого класса
-    CourierClient courierClient = new CourierClient();
     //аннотация для Allure, чтобы в отчете отобразилось действие
     @Step("Создать курьера")
-    public Response createCourierStep(String login, String password, String firstName){
+    public Response createCourierStep(Courier courier){
         //создать реквест для создания курьера
-        CreateRequest createRequest = new CreateRequest(login, password, firstName);
+        CreateRequest createRequest = new CreateRequest(courier.getLogin(), courier.getPassword(), courier.getFirstName());
         //вернуть респонс для метода создания курьера, который принимает созданный в степе реквест
         return createCourier(createRequest);
     }
     @Step("Авторизация курьера")
-    public Response loginCourierStep(String login, String password){
-        LoginRequest loginRequest= new LoginRequest(login, password);
-        return loginCourier(loginRequest);
+    public Response loginCourierStep(Courier courier){
+        LoginRequest loginRequest= new LoginRequest(courier.getLogin(), courier.getPassword());
+        Response response = loginCourier(loginRequest);
+        Integer id = response.path("id");
+        courier.setCourierId(id);
+        return response;
     }
+
     @Step("Удалить курьера")
-    public Response deleteCourierStep(Integer courierId){
-        DeleteRequest deleteRequest = new DeleteRequest(courierId);
+    public Response deleteCourierStep(Courier courier){
+        DeleteRequest deleteRequest = new DeleteRequest(courier.getCourierId());
         return deleteCourier(deleteRequest);
     }
+
+
 }

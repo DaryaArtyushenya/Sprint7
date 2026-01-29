@@ -1,9 +1,9 @@
 package clients;
 
 import io.restassured.RestAssured;
-import modelPojo.courierPojo.CreateRequest;
-import modelPojo.courierPojo.DeleteRequest;
-import modelPojo.courierPojo.LoginRequest;
+import model.modelPojo.courierPojo.CreateRequest;
+import model.modelPojo.courierPojo.DeleteRequest;
+import model.modelPojo.courierPojo.LoginRequest;
 
 import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;

@@ -1,4 +1,4 @@
-package modelPojo.orderPojo.orderListPojo;
+package model.modelPojo.orderPojo.orderListPojo;
 
 import java.util.List;
 

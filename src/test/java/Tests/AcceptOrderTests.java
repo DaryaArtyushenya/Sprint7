@@ -1,17 +1,23 @@
 package Tests;
 
+import clients.OrderClient;
+import dataFactory.CourierFactory;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import modelPojo.courierPojo.LoginSuccess;
-import modelPojo.orderPojo.AcceptOrderResponse;
-import modelPojo.orderPojo.NotAcceptOrderResponse;
-import modelPojo.orderPojo.orderListPojo.Order;
-import modelPojo.orderPojo.orderListPojo.OrderListResponse;
+import model.modelData.Courier;
+import model.modelPojo.orderPojo.AcceptOrderResponse;
+import model.modelPojo.orderPojo.NotAcceptOrderResponse;
+import model.modelPojo.orderPojo.orderListPojo.Order;
+import model.modelPojo.orderPojo.orderListPojo.OrderListResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import steps.CourierSteps;
+import steps.OrderSteps;
+
 import java.util.List;
+import java.util.Random;
+
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,97 +29,68 @@ public class AcceptOrderTests{
     }
 
     CourierSteps courierSteps = new CourierSteps();
-
+    OrderSteps orderSteps = new OrderSteps();
+    OrderClient orderClient = new OrderClient();
     @Test
     @DisplayName("Заказ успешно принят")
     void acceptOrderTest(){
-
-        /*
-        заметила что список ордеров не обновляется, поэтому возьму ид первого ордера
-        но если бы список обновлялся, то нашла бы идОрдера так
-        Response response1 = createOrder(new CreateOrderRequest("имя",
-                "фамилия",
-                "адрес",
-                "Пушкинская",
-                "777777777777",
-                23,
-                "2026.12.01",
-                "коммент",
-                new String[]{"BLACK", "GREY"}));
-        CreateOrderSuccess createOrderSuccess =response1.as(CreateOrderSuccess.class);
-        Integer orderTrack = createOrderSuccess.getTrack();
-        Integer orderId = orderList.stream()
-                .filter(order -> order.getTrack().equals(orderTrack))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Order not found"))
-                .getId();
-         */
-        courierSteps.createCourierStep("dartyushenya1", "1234","darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        OrderListResponse orderListResponse = given()
-                .get("/api/v1/orders").as(OrderListResponse.class);
-        List<Order> orderList = orderListResponse.getOrders();
-        Integer orderId= orderList.get(0).getId();
-        AcceptOrderResponse acceptOrderResponse =
-                given()
-                        .queryParam("courierId", courierId )
-                        .put("api/v1/orders/accept/" + orderId)
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        Response response = orderSteps.orderListStep();
+        List<Order> ordersFromApi = response.as(OrderListResponse.class).getOrders();
+        Random random = new Random();
+        //для теста каждый раз будет браться рандомный ордер ид из списка существующих ордеров
+        int randomIndex = random.nextInt(ordersFromApi.size());
+        Integer randomOrderId = ordersFromApi.get(randomIndex).getId();
+        AcceptOrderResponse acceptOrderResponse = orderSteps.acceptOrderStep(courier, randomOrderId)
                         .then().log().all()
                         .statusCode(200)
                         .extract()
                         .as(AcceptOrderResponse.class);
         assertTrue(acceptOrderResponse.getOk());
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
 
     @Test
     @DisplayName("Заказ не принят по причине отсутствия id")
     void acceptOrderWithoutIdTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234","darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        NotAcceptOrderResponse notAcceptOrderResponse =
-                given()
-                        .queryParam("courierId", courierId )
-                        .put("api/v1/orders/accept/")
+
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        NotAcceptOrderResponse notAcceptOrderResponse = orderClient.notAcceptOrderWithoutOrderId(courier)
                         .then().log().all()
                         .statusCode(404)
                         .extract()
                         .as(NotAcceptOrderResponse.class);
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
+
     @Test
     @DisplayName("Заказ не принят по причине несуществующего id")
     void acceptOrderWithIncorrectIdTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234","darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        NotAcceptOrderResponse notAcceptOrderResponse =
-                given()
-                        .queryParam("courierId", courierId )
-                        .put("api/v1/orders/accept/"+ 348)
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        NotAcceptOrderResponse notAcceptOrderResponse = orderClient.notAcceptOrderWithNonExistingOrderId(courier)
                         .then().log().all()
                         .statusCode(404)
                         .extract()
                         .as(NotAcceptOrderResponse.class);
         assertEquals("Заказа с таким id не существует", notAcceptOrderResponse.getMessage());
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
     @Test
     @DisplayName("Заказ не принят по причине несуществующего courierId")
     void acceptOrderWithIncorrectCourierIdTest(){
-        OrderListResponse orderListResponse = given()
-                .get("/api/v1/orders").as(OrderListResponse.class);
-        List<Order> orderList = orderListResponse.getOrders();
-        Integer orderId= orderList.get(0).getId();
-        NotAcceptOrderResponse notAcceptOrderResponse =
-                given()
-                        .queryParam("courierId", 123 )
-                        .put("api/v1/orders/accept/"+ orderId)
+        Response response = orderSteps.orderListStep();
+        List<Order> ordersFromApi = response.as(OrderListResponse.class).getOrders();
+        Random random = new Random();
+        int randomIndex = random.nextInt(ordersFromApi.size());
+        //для теста каждый раз будет браться рандомный ордер ид из списка существующих ордеров
+        Integer randomOrderId = ordersFromApi.get(randomIndex).getId();
+        NotAcceptOrderResponse notAcceptOrderResponse = orderClient.notAcceptOrderWithNinExistingCourierId(randomOrderId)
                         .then().log().all()
                         .statusCode(404)
                         .extract()
@@ -123,45 +100,42 @@ public class AcceptOrderTests{
     @Test
     @DisplayName("Заказ не принят по причине того, что уже находится в работе")
     void orderAlreadyAcceptedTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234","darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        OrderListResponse orderListResponse = given()
-                .get("/api/v1/orders").as(OrderListResponse.class);
-        List<Order> orderList = orderListResponse.getOrders();
-        Integer orderId= orderList.get(0).getId();
-        given().log().all()
-                .queryParam("courierId", courierId )
-                .put("api/v1/orders/accept/"+ orderId);
-
-        NotAcceptOrderResponse notAcceptOrderResponse =
-                given()
-                        .queryParam("courierId", courierId )
-                        .put("api/v1/orders/accept/"+ orderId)
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        Response response = orderSteps.orderListStep();
+        List<Order> ordersFromApi = response.as(OrderListResponse.class).getOrders();
+        Random random = new Random();
+        int randomIndex = random.nextInt(ordersFromApi.size());
+        //для теста каждый раз будет браться рандомный ордер ид из списка существующих ордеров
+        Integer randomOrderId = ordersFromApi.get(randomIndex).getId();
+        orderSteps.acceptOrder(courier, randomOrderId);
+        NotAcceptOrderResponse notAcceptOrderResponse = orderSteps.acceptOrder(courier, randomOrderId)
                         .then().log().all()
                         .statusCode(409)
                         .extract()
                         .as(NotAcceptOrderResponse.class);
         assertEquals("Этот заказ уже в работе", notAcceptOrderResponse.getMessage());
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
     @Test
     @DisplayName("Заказ не принят по причине отсутствия courierId")
     void acceptOrderWithoutCourierIdTest(){
-        OrderListResponse orderListResponse = given()
-                .get("/api/v1/orders").as(OrderListResponse.class);
-        List<Order> orderList = orderListResponse.getOrders();
-        Integer orderId= orderList.get(0).getId();
-
+        Response response = orderSteps.orderListStep();
+        List<Order> ordersFromApi = response.as(OrderListResponse.class).getOrders();
+        Random random = new Random();
+        int randomIndex = random.nextInt(ordersFromApi.size());
+        //для теста каждый раз будет браться рандомный ордер ид из списка существующих ордеров
+        Integer randomOrderId = ordersFromApi.get(randomIndex).getId();
         NotAcceptOrderResponse notAcceptOrderResponse =
                 given()
                         .queryParam("courierId" )
-                        .put("api/v1/orders/accept/"+ orderId)
+                        .put("api/v1/orders/accept/"+ randomOrderId)
                         .then().log().all()
                         .statusCode(400)
                         .extract()
                         .as(NotAcceptOrderResponse.class);
         assertEquals("Недостаточно данных для поиска", notAcceptOrderResponse.getMessage());
     }
+
 }

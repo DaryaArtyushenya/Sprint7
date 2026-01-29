@@ -1,4 +1,4 @@
-package modelPojo.courierPojo;
+package model.modelPojo.courierPojo;
 
 public class CreateRequest extends LoginRequest{
     //pojo -класс с приватными полями, который хранит данные

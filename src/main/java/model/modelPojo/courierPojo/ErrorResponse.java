@@ -1,4 +1,4 @@
-package modelPojo.courierPojo;
+package model.modelPojo.courierPojo;
 
 public class ErrorResponse {
     private String message;

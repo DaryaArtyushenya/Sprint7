@@ -1,14 +1,17 @@
 package Tests;
 
 
+import dataFactory.CourierFactory;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import modelPojo.courierPojo.LoginSuccess;
-import modelPojo.orderPojo.orderListPojo.OrderListResponse;
+import model.modelData.Courier;
+import model.modelPojo.courierPojo.LoginSuccess;
+import model.modelPojo.orderPojo.orderListPojo.OrderListResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import steps.CourierSteps;
+import steps.OrderSteps;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,11 +23,12 @@ public class ListOfOrdersTests{
         RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
     }
     CourierSteps courierSteps = new CourierSteps();
+    OrderSteps orderSteps = new OrderSteps();
+
     @Test
     @DisplayName("Получение списка всех заказов")
     void getOrderListTest(){
-        OrderListResponse orderListResponse = given()
-                .get("/api/v1/orders")
+        OrderListResponse orderListResponse = orderSteps.orderListStep()
                 .then()
                 .statusCode(200)
                 .extract()
@@ -39,34 +43,26 @@ public class ListOfOrdersTests{
     @Test
     @DisplayName("Получение заказов для заданного курьера")
     void getOrdersByCourierIdTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234", "darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-
-        OrderListResponse orderListResponse = given()
-                .queryParam("courierId", courierId)
-                .get("/api/v1/orders")
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        OrderListResponse orderListResponse = orderSteps.orderListByCourierId(courier)
                 .then()
                 .statusCode(200)
                 .extract().as(OrderListResponse.class);
         assertThat(orderListResponse.getOrders())
                 .isNotNull()
                 .isEmpty();
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
 
     @Test
     @DisplayName("Получение ордера по ид курьера и ближайшим станциям метро  ")
     void getOrderByIdAndStationTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234", "darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        OrderListResponse orderListResponse = given().log().all()
-                .queryParam("courierId",courierId )
-                .queryParam("nearestStation", "[\"1\", \"2\"]")
-                .get("/api/v1/orders")
+        Courier courier =CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        OrderListResponse orderListResponse = orderSteps.orderListByCourierIdAndNearestStationStep(courier)
                 .then().log().all()
                 .statusCode(200)
                 .extract()
@@ -74,26 +70,22 @@ public class ListOfOrdersTests{
         assertThat(orderListResponse.getOrders())
                 .isNotNull() //проверка на то, что список существует
                 .isEmpty(); // проверка, что список пустой
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
     @Test
     @DisplayName("Получение 10 заказов доступных для курьера")
     void get10OrdersAvailableForCourierTest(){
-        courierSteps.createCourierStep("dartyushenya1", "1234", "darya");
-        Response response = courierSteps.loginCourierStep("dartyushenya1", "1234");
-        LoginSuccess loginSuccess = response.as(LoginSuccess.class);
-        Integer courierId = loginSuccess.getId();
-        OrderListResponse orderListResponse = given().log().all()
-                .queryParam("limit",10 )
-                .queryParam("page", 0)
-                .get("api/v1/orders")
+        Courier courier = CourierFactory.validCourier();
+        courierSteps.createCourierStep(courier);
+        courierSteps.loginCourierStep(courier);
+        OrderListResponse orderListResponse = orderSteps.orderListOf10OrdersAvailableForCourierStep()
                 .then()
                 .statusCode(200)
                 .extract()
                 .as(OrderListResponse.class);
         assertEquals(10,orderListResponse.getOrders().size() );
         assertThat(orderListResponse.getOrders()).allSatisfy(order -> order.getId()).isNotNull();
-        courierSteps.deleteCourierStep(courierId);
+        courierSteps.deleteCourierStep(courier);
     }
 
 }

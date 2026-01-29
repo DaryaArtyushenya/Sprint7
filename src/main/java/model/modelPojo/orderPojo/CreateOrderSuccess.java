@@ -1,4 +1,4 @@
-package modelPojo.orderPojo;
+package model.modelPojo.orderPojo;
 
 public class CreateOrderSuccess {
     private Integer track;
